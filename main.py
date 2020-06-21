@@ -20,7 +20,7 @@ def parallel_rescale(image_list):
     for image_name in image_list:
         if image_name != '.gitignore':
             start_time = time.time()
-            image = cv2.imread(images_path + image_name, cv2.IMREAD_COLOR)
+            image = cv2.imread(images_path + image_name, cv2.IMREAD_GRAYSCALE)
             scale_percent = 2
             width = int(image.shape[1] * scale_percent / 100)
             height = int(image.shape[0] * scale_percent / 100)
@@ -33,7 +33,7 @@ def parallel_rescale(image_list):
             image_id = image_name.split('.')[0]
 
             images[image_id[:3]].append((image_id[3:], image_rescaled))
-            cv2.imwrite(rescaled_images_path + image_name, image_rescaled)
+            # cv2.imwrite(rescaled_images_path + image_name, image_rescaled)
 
 
 def rescale_images():
@@ -89,7 +89,6 @@ def main():
     os.environ['OPENCV_IO_ENABLE_JASPER'] = 'true'
     initialize_list(images)
     rescale_images()
-    print(images)
     image_info = sort_images()
     result = stitch_images(image_info)
     cv2.imwrite(rescaled_images_path + 'res.jp2', result)
