@@ -1,19 +1,13 @@
-import multiprocessing
 import os
-import sys
 import time
 from concurrent.futures.thread import ThreadPoolExecutor
 
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
 images_path = 'data_jp2/'
 rescaled_images_path = 'data_jp2_rescaled/'
 images = {}
-
-
-# np.set_printoptions(threshold=sys.maxsize)
 
 
 def parallel_rescale(image_list):
