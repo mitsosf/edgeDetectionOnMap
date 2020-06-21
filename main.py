@@ -82,9 +82,11 @@ def main():
 
     os.environ['OPENCV_IO_ENABLE_JASPER'] = 'true'
     initialize_list(images)
+    start_time = time.time()
     rescale_images()
     image_info = sort_images()
     result = stitch_images(image_info)
+    print('Initialized, resized and stitched images in ' + str((time.time() - start_time)) + ' seconds')
     cv2.imwrite(rescaled_images_path + 'res.jp2', result)
     cv2.imshow('Reconstructed map', result)
     cv2.waitKey(0)
