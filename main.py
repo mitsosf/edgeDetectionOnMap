@@ -8,7 +8,7 @@ import numpy as np
 images_path = 'data_jp2/'
 rescaled_images_path = 'data_jp2_rescaled/'
 images = {}
-scale_percent = 0.1
+scale_percent = 0.2
 min_road_length = 4000
 
 
@@ -79,15 +79,17 @@ def sort_images():
 
 
 def hough_transform(image):
-    image = cv2.GaussianBlur(image, (11, 11), 0)
-    image = cv2.Canny(image, 100, 150)
+    rgb_image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    gaussian = cv2.GaussianBlur(image, (11, 11), 0)
+    canny = cv2.Canny(gaussian, 100, 200, L2gradient=True)
 
-    lines = cv2.HoughLinesP(image, 1, np.pi / 180, 100, minLineLength=min_road_length*scale_percent, maxLineGap=10)
+    lines = cv2.HoughLinesP(canny, 1, np.pi / 180, 100, minLineLength=400, maxLineGap=40)
+    print('Detected ' + str(len(lines)) + ' roads.')
     for line in lines:
         x1, y1, x2, y2 = line[0]
-        cv2.line(image, (x1, y1), (x2, y2), (255, 0, 0))
+        cv2.line(rgb_image, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
-    return image
+    return rgb_image
 
 
 def main():
@@ -96,17 +98,18 @@ def main():
     os.environ['OPENCV_IO_ENABLE_JASPER'] = 'true'
     initialize_list(images)
     start_time = time.time()
-    rescale_images()
-    image_info = sort_images()
-    result = stitch_images(image_info)
-    cv2.imwrite(rescaled_images_path + 'res.jp2', result)
+    # rescale_images()
+    # image_info = sort_images()
+    # result = stitch_images(image_info)
+    # cv2.imwrite(rescaled_images_path + 'res.jp2', result)
+    result = cv2.imread(rescaled_images_path + 'res_scaled10.jp2', cv2.IMREAD_GRAYSCALE)
     hough_transformed = hough_transform(result)
 
     processing_end_time = time.time() - start_time
     print('Initialized, resized and stitched images in ' + str(processing_end_time) + ' seconds')
-    cv2.namedWindow('Reconstructed map', cv2.WINDOW_NORMAL)
-    cv2.resizeWindow('Reconstructed map', 900, 1000)
-    cv2.imshow('Reconstructed map', hough_transformed)
+    cv2.namedWindow('Hough map', cv2.WINDOW_NORMAL)
+    cv2.resizeWindow('Hough map', 900, 1000)
+    cv2.imshow('Hough map', hough_transformed)
     print('Rendered map in ' + str(time.time() - processing_end_time) + 'seconds')
     cv2.waitKey(0)
     cv2.destroyAllWindows()
