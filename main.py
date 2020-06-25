@@ -8,7 +8,7 @@ import numpy as np
 images_path = 'data_jp2/'
 rescaled_images_path = 'data_jp2_rescaled/'
 images = {}
-scale_percent = 0.03
+scale_percent = 0.1
 min_road_length = 4000
 
 
@@ -23,8 +23,6 @@ def parallel_rescale(image_list):
 
             # Resize image
             image_rescaled = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
-            image_rescaled = cv2.GaussianBlur(image_rescaled, (11, 11), 0)
-            image_rescaled = cv2.Canny(image_rescaled, 100, 150)
             diff = time.time() - start_time
             print('Read and rescaled image ' + str(image_name) + ' in ' + str(diff) + ' seconds')
             image_id = image_name.split('.')[0]
@@ -81,6 +79,9 @@ def sort_images():
 
 
 def hough_transform(image):
+    image = cv2.GaussianBlur(image, (11, 11), 0)
+    image = cv2.Canny(image, 100, 150)
+
     lines = cv2.HoughLinesP(image, 1, np.pi / 180, 100, minLineLength=min_road_length*scale_percent, maxLineGap=10)
     for line in lines:
         x1, y1, x2, y2 = line[0]
@@ -104,7 +105,7 @@ def main():
     processing_end_time = time.time() - start_time
     print('Initialized, resized and stitched images in ' + str(processing_end_time) + ' seconds')
     cv2.namedWindow('Reconstructed map', cv2.WINDOW_NORMAL)
-    cv2.resizeWindow('Reconstructed map', 1000, 900)
+    cv2.resizeWindow('Reconstructed map', 900, 1000)
     cv2.imshow('Reconstructed map', hough_transformed)
     print('Rendered map in ' + str(time.time() - processing_end_time) + 'seconds')
     cv2.waitKey(0)
