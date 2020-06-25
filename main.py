@@ -8,6 +8,8 @@ import numpy as np
 images_path = 'data_jp2/'
 rescaled_images_path = 'data_jp2_rescaled/'
 images = {}
+scale_percent = 0.03
+min_road_length = 4000
 
 
 def parallel_rescale(image_list):
@@ -15,13 +17,14 @@ def parallel_rescale(image_list):
         if image_name != '.gitignore':
             start_time = time.time()
             image = cv2.imread(images_path + image_name, cv2.IMREAD_GRAYSCALE)
-            scale_percent = 2
-            width = int(image.shape[1] * scale_percent / 100)
-            height = int(image.shape[0] * scale_percent / 100)
+            width = int(image.shape[1] * scale_percent)
+            height = int(image.shape[0] * scale_percent)
             dim = (width, height)
 
             # Resize image
             image_rescaled = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
+            image_rescaled = cv2.GaussianBlur(image_rescaled, (11, 11), 0)
+            image_rescaled = cv2.Canny(image_rescaled, 100, 150)
             diff = time.time() - start_time
             print('Read and rescaled image ' + str(image_name) + ' in ' + str(diff) + ' seconds')
             image_id = image_name.split('.')[0]
@@ -77,6 +80,15 @@ def sort_images():
     return final_dict
 
 
+def hough_transform(image):
+    lines = cv2.HoughLinesP(image, 1, np.pi / 180, 100, minLineLength=min_road_length*scale_percent, maxLineGap=10)
+    for line in lines:
+        x1, y1, x2, y2 = line[0]
+        cv2.line(image, (x1, y1), (x2, y2), (255, 0, 0))
+
+    return image
+
+
 def main():
     # Enables jp2 support
 
@@ -86,9 +98,15 @@ def main():
     rescale_images()
     image_info = sort_images()
     result = stitch_images(image_info)
-    print('Initialized, resized and stitched images in ' + str((time.time() - start_time)) + ' seconds')
     cv2.imwrite(rescaled_images_path + 'res.jp2', result)
-    cv2.imshow('Reconstructed map', result)
+    hough_transformed = hough_transform(result)
+
+    processing_end_time = time.time() - start_time
+    print('Initialized, resized and stitched images in ' + str(processing_end_time) + ' seconds')
+    cv2.namedWindow('Reconstructed map', cv2.WINDOW_NORMAL)
+    cv2.resizeWindow('Reconstructed map', 1000, 900)
+    cv2.imshow('Reconstructed map', hough_transformed)
+    print('Rendered map in ' + str(time.time() - processing_end_time) + 'seconds')
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
