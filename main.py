@@ -1,6 +1,8 @@
+import math
 import os
 import time
 from concurrent.futures.thread import ThreadPoolExecutor
+from matplotlib import pyplot as plt
 
 import cv2
 import numpy as np
@@ -81,15 +83,41 @@ def sort_images():
 def hough_transform(image):
     rgb_image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
     gaussian = cv2.GaussianBlur(image, (11, 11), 0)
-    canny = cv2.Canny(gaussian, 100, 200, L2gradient=True)
-
-    lines = cv2.HoughLinesP(canny, 1, np.pi / 180, 100, minLineLength=400, maxLineGap=40)
+    canny = cv2.Canny(gaussian, 100, 150, L2gradient=True)
+    # return canny
+    lines = cv2.HoughLinesP(canny, 1, np.pi / 180, 60, minLineLength=400, maxLineGap=45)
     print('Detected ' + str(len(lines)) + ' roads.')
+    stats = {
+        '0.30': 0,
+        '0.35': 0,
+        '0.40': 0,
+        '0.45': 0,
+        '0.50': 0,
+        '0.55': 0,
+        '0.60': 0,
+        '0.65': 0,
+    }
     for line in lines:
         x1, y1, x2, y2 = line[0]
+        angle = math.atan2(y2/y1, x2/x1)
+        for stat in stats.keys():
+            if angle - float(stat) < 0.5:
+                stats[stat] += 1
+                break
+
         cv2.line(rgb_image, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
+    print(stats)
+
+    # return rotate_image(rgb_image, math.degrees(0.3))
     return rgb_image
+
+
+def rotate_image(image, angle):
+    image_center = tuple(np.array(image.shape[1::-1]) / 2)
+    rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
+    result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
+    return result
 
 
 def main():
