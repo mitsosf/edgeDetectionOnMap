@@ -80,10 +80,15 @@ def sort_images():
 
 def hough_transform(image):
     rgb_image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-    gaussian = cv2.GaussianBlur(image, (11, 11), 0)
-    canny = cv2.Canny(gaussian, 100, 200, L2gradient=True)
 
-    lines = cv2.HoughLinesP(canny, 1, np.pi / 180, 100, minLineLength=400, maxLineGap=40)
+    kernel = np.ones((5, 5), np.uint8)
+    erosion = cv2.erode(image, kernel, iterations=2)
+    dilation = cv2.dilate(erosion, kernel, iterations=1)
+
+    gaussian = cv2.GaussianBlur(dilation, (11, 11), 0)
+    canny = cv2.Canny(dilation, 100, 200, L2gradient=True)
+    # return canny
+    lines = cv2.HoughLinesP(canny, 1, np.pi / 180, 100, minLineLength=400, maxLineGap=60)
     print('Detected ' + str(len(lines)) + ' roads.')
     for line in lines:
         x1, y1, x2, y2 = line[0]
