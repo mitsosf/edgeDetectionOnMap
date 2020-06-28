@@ -2,3 +2,4 @@ venv
 .idea
 data_jp2_rescaled/*
 !data_jp2_rescaled/res_scaled10.jp2
+!data_jp2_rescaled/natural_history_museum_10.jp2
