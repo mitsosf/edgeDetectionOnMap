@@ -1,3 +1,4 @@
+import math
 import os
 import time
 from concurrent.futures.thread import ThreadPoolExecutor
@@ -8,7 +9,7 @@ import numpy as np
 images_path = 'data_jp2/'
 rescaled_images_path = 'data_jp2_rescaled/'
 images = {}
-scale_percent = 0.2
+scale_percent = 0.05
 min_road_length = 4000
 
 
@@ -87,14 +88,30 @@ def hough_transform(image):
 
     gaussian = cv2.GaussianBlur(dilation, (11, 11), 0)
     canny = cv2.Canny(dilation, 100, 200, L2gradient=True)
-    # return canny
-    lines = cv2.HoughLinesP(canny, 1, np.pi / 180, 100, minLineLength=400, maxLineGap=60)
+    cv2.namedWindow('Canny', cv2.WINDOW_NORMAL)
+    cv2.resizeWindow('Canny', 900, 1000)
+    cv2.imshow('Canny', canny)
+    lines = cv2.HoughLinesP(canny, 1, np.pi / 180, 100, minLineLength=400, maxLineGap=40)
     print('Detected ' + str(len(lines)) + ' roads.')
+    # for line in lines:
+
     for line in lines:
         x1, y1, x2, y2 = line[0]
+
+        deltaY = y2 - y1
+        deltaX = x2 - x1
+        angleInDegrees = math.atan2(deltaY, deltaX) * 180 / np.pi
+
         cv2.line(rgb_image, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
     return rgb_image
+
+
+def rotate_image(image, angle):
+    image_center = tuple(np.array(image.shape[1::-1]) / 2)
+    rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
+    result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
+    return result
 
 
 def main():
@@ -106,7 +123,7 @@ def main():
     # rescale_images()
     # image_info = sort_images()
     # result = stitch_images(image_info)
-    # cv2.imwrite(rescaled_images_path + 'res.jp2', result)
+    # cv2.imwrite(rescaled_images_path + 'res_scaled05.jp2', result)
     result = cv2.imread(rescaled_images_path + 'res_scaled10.jp2', cv2.IMREAD_GRAYSCALE)
     hough_transformed = hough_transform(result)
 
