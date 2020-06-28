@@ -1,7 +1,6 @@
 import math
 import os
 import time
-import matplotlib.pylab as plt
 from concurrent.futures.thread import ThreadPoolExecutor
 
 import cv2
@@ -63,7 +62,7 @@ def stitch_images(images_list):
     return np.hstack(row_images)
 
 
-def initialize_list(image_list):
+def initialize_list():
     for image_name in os.listdir(images_path):
         if image_name != '.gitignore' and image_name[:3] not in images.keys():
             images[image_name[:3]] = list()
@@ -82,17 +81,11 @@ def sort_images():
     return final_dict
 
 
-def auto_canny(image, sigma=0.33):
-    # compute the median of the single channel pixel intensities
-    v = np.median(image)
-
-    # apply automatic Canny edge detection using the computed median
-    lower = int(max(0, (1.0 - sigma) * v))
-    upper = int(min(255, (1.0 + sigma) * v))
-    edged = cv2.Canny(image, lower, upper, L2gradient=True)
-
-    # return the edged image
-    return edged
+def angle_from_line(line):
+    x1, y1, x2, y2 = line[0]
+    delta_y = y2 - y1
+    delta_x = x2 - x1
+    return math.atan2(delta_y, delta_x) * 180 / np.pi
 
 
 def hough_transform(image, perpendicular_lines=False):
@@ -102,22 +95,16 @@ def hough_transform(image, perpendicular_lines=False):
     erosion = cv2.erode(image, kernel, iterations=2)
     dilation = cv2.dilate(erosion, kernel, iterations=1)
 
-    gaussian = cv2.GaussianBlur(dilation, (11, 11), 0)
+    # gaussian = cv2.GaussianBlur(dilation, (11, 11), 0)
     canny = cv2.Canny(dilation, 100, 200, L2gradient=True)
-    # cv2.namedWindow('Canny', cv2.WINDOW_NORMAL)
-    # cv2.resizeWindow('Canny', 900, 1000)
-    # cv2.imshow('Canny', canny)
     lines = cv2.HoughLinesP(canny, 1, np.pi / 180, 100, minLineLength=min_road_length * scale_percentage, maxLineGap=40)
-    # for line in lines:
 
     line_counter = 0
     for line in lines:
         x1, y1, x2, y2 = line[0]
 
         if perpendicular_lines:
-            deltaY = y2 - y1
-            deltaX = x2 - x1
-            angle_in_degrees = math.atan2(deltaY, deltaX) * 180 / np.pi
+            angle_in_degrees = angle_from_line(line)
             if -3 < angle_in_degrees < 3 or 87 < angle_in_degrees < 93 \
                     or 177 < angle_in_degrees < 183 or 267 < angle_in_degrees < 273:
                 line_counter += 1
@@ -126,13 +113,11 @@ def hough_transform(image, perpendicular_lines=False):
             line_counter += 1
             cv2.line(rgb_image, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
+    # Get the required angle from the first detected line
     first_line = lines[0]
-    x1, y1, x2, y2 = first_line[0]
-    deltaY = y2 - y1
-    deltaX = x2 - x1
-    angleInDegrees = math.atan2(deltaY, deltaX) * 180 / np.pi
+    angle_in_degrees = angle_from_line(first_line)
 
-    return rgb_image, angleInDegrees, line_counter
+    return rgb_image, angle_in_degrees, line_counter
 
 
 def rotate_image(image, angle):
@@ -149,30 +134,28 @@ def calculate_area_in_pixels(image):
 
 
 def draw_rectangle(image, coordinates):
-    rgb_image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-
     return cv2.rectangle(image, coordinates[0], coordinates[1], (0, 0, 255), -1)
 
 
 def calculate_relative_area(source_actual, source_pixels, target_pixels):
-    return target_pixels * source_actual / source_pixels
+    return round(target_pixels * source_actual / source_pixels)
 
 
 def main():
     # Enables jp2 support
 
     os.environ['OPENCV_IO_ENABLE_JASPER'] = 'true'
-    initialize_list(images)
+    initialize_list()
     start_time = time.time()
-    # rescale_images()
-    # image_info = sort_images()
-    # result = stitch_images(image_info)
-    # cv2.imwrite(rescaled_images_path + 'res.jp2', result)
+    rescale_images()
+    image_info = sort_images()
+    result = stitch_images(image_info)
+    cv2.imwrite(rescaled_images_path + 'res_scaled10.jp2', result)
 
     processing_end_time = time.time() - start_time
     print('Initialized, resized and stitched images in ' + str(processing_end_time) + ' seconds')
 
-    result = cv2.imread(rescaled_images_path + 'res_scaled10.jp2', cv2.IMREAD_GRAYSCALE)
+    # result = cv2.imread(rescaled_images_path + 'res_scaled10.jp2', cv2.IMREAD_GRAYSCALE)
 
     hough_transformed, angle, _ = hough_transform(result)
     rotated_image = rotate_image(result, angle)
@@ -187,18 +170,17 @@ def main():
     museum = rotate_image(museum, angle)
     museum_augmented = draw_rectangle(museum, ((200, 180), (400, 340)))
     museum_area_in_pixels = calculate_area_in_pixels(museum_augmented)
-    print('The area of the National History Museum is around ' + str(museum_area_in_pixels) + 'pixels'
+    print('The area of the National History Museum is around ' + str(museum_area_in_pixels) + ' pixels'
                                                                                               ' in the original image')
 
     museum_actual_area = 82386.68
     central_park_area = calculate_relative_area(museum_actual_area, museum_area_in_pixels, central_park_area_in_pixels)
-    print('If the museuim\'s actual area is ' + str(museum_actual_area) + ' then the Central Park has an area of:')
+    print('If the museum\'s actual area is ' + str(museum_actual_area) + ' then the Central Park has an area of:')
     print(str(central_park_area) + ' m^2')
 
-    cv2.namedWindow('Hough map', cv2.WINDOW_NORMAL)
-    cv2.resizeWindow('Hough map', 900, 1000)
-    cv2.imshow('Hough map', central_park_augmented)
-    print('Rendered map in ' + str(time.time() - processing_end_time) + 'seconds')
+    cv2.namedWindow('Detected roads', cv2.WINDOW_NORMAL)
+    cv2.resizeWindow('Detected roads', 900, 1000)
+    cv2.imshow('Detected roads', hough_rotated)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
