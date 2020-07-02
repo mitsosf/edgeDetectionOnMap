@@ -146,14 +146,10 @@ def main():
 
     os.environ['OPENCV_IO_ENABLE_JASPER'] = 'true'
     initialize_list()
-    start_time = time.time()
     rescale_images()
     image_info = sort_images()
     result = stitch_images(image_info)
     cv2.imwrite(rescaled_images_path + 'res_scaled10.jp2', result)
-
-    processing_end_time = time.time() - start_time
-    print('Initialized, resized and stitched images in ' + str(processing_end_time) + ' seconds')
 
     # result = cv2.imread(rescaled_images_path + 'res_scaled10.jp2', cv2.IMREAD_GRAYSCALE)
 
