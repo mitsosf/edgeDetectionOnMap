@@ -1,5 +1,4 @@
-# Digital Image Processing 2020
-
+# Digital Image Processing Demo
 #### Installation & Usage:
 
 1. Create a new venv
