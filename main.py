@@ -151,7 +151,7 @@ def main():
     result = stitch_images(image_info)
     cv2.imwrite(rescaled_images_path + 'res_scaled10.jp2', result)
 
-    # result = cv2.imread(rescaled_images_path + 'res_scaled10.jp2', cv2.IMREAD_GRAYSCALE)
+    result = cv2.imread(rescaled_images_path + 'res_scaled10.jp2', cv2.IMREAD_GRAYSCALE)
 
     hough_transformed, angle, _ = hough_transform(result)
     rotated_image = rotate_image(result, angle)
